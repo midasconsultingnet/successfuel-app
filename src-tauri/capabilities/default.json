@@ -1,0 +1,16 @@
+{
+  "identifier": "default",
+  "description": "Default permissions for the SuccessFuel ERP application - minimal required capabilities",
+  "windows": ["main"],
+  "permissions": [
+    "core:app:default",
+    "core:event:default",
+    "core:window:default",
+    "core:webview:default",
+    "core:menu:default",
+    "core:path:default",
+    "core:tray:default",
+    "core:resources:default",
+    "core:image:default"
+  ]
+}

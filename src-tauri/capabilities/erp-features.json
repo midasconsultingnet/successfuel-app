@@ -1,0 +1,13 @@
+{
+  "identifier": "erp-features",
+  "description": "Permissions for core ERP features",
+  "windows": ["main"],
+  "permissions": [
+    "core:app:default",
+    "core:event:default",
+    "core:window:default",
+    "core:webview:default",
+    "core:path:allow-resolve",
+    "core:path:allow-normalize"
+  ]
+}

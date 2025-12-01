@@ -1,0 +1,249 @@
+/* Global styles for SuccessFuel ERP */
+
+/* CSS Variables for consistent theming */
+:root {
+  --primary-color: #007bff;
+  --secondary-color: #6c757d;
+  --success-color: #28a745;
+  --info-color: #17a2b8;
+  --warning-color: #ffc107;
+  --danger-color: #dc3545;
+  --light-color: #f8f9fa;
+  --dark-color: #343a40;
+  
+  --sidebar-width-collapsed: 60px;
+  --sidebar-width-expanded: 250px;
+  
+  --font-size-small: 0.75rem;
+  --font-size-base: 1rem;
+  --font-size-large: 1.25rem;
+  
+  --border-radius: 0.375rem;
+  --box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+/* Base styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: #f5f7fa;
+  color: #2c3e50;
+}
+
+/* Common utility classes */
+.text-center {
+  text-align: center;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.d-flex {
+  display: flex;
+}
+
+.d-grid {
+  display: grid;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.align-center {
+  align-items: center;
+}
+
+.gap-1 {
+  gap: 0.25rem;
+}
+
+.gap-2 {
+  gap: 0.5rem;
+}
+
+.gap-3 {
+  gap: 1rem;
+}
+
+.gap-4 {
+  gap: 1.5rem;
+}
+
+.m-0 {
+  margin: 0;
+}
+
+.m-1 {
+  margin: 0.25rem;
+}
+
+.m-2 {
+  margin: 0.5rem;
+}
+
+.m-3 {
+  margin: 1rem;
+}
+
+.m-4 {
+  margin: 1.5rem;
+}
+
+.p-0 {
+  padding: 0;
+}
+
+.p-1 {
+  padding: 0.25rem;
+}
+
+.p-2 {
+  padding: 0.5rem;
+}
+
+.p-3 {
+  padding: 1rem;
+}
+
+.p-4 {
+  padding: 1.5rem;
+}
+
+/* Card styles */
+.card {
+  background: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  border: 1px solid #e9ecef;
+}
+
+/* Button styles */
+.btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  transition: all 0.2s ease-in-out;
+  outline: none;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.btn-secondary {
+  background-color: var(--secondary-color);
+  color: white;
+}
+
+.btn-success {
+  background-color: var(--success-color);
+  color: white;
+}
+
+.btn-warning {
+  background-color: var(--warning-color);
+  color: white;
+}
+
+.btn-danger {
+  background-color: var(--danger-color);
+  color: white;
+}
+
+.btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* Form styles */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  padding: 0.375rem 0.75rem;
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  color: #495057;
+  background-color: white;
+  background-clip: padding-box;
+  border: 1px solid #ced4da;
+  border-radius: var(--border-radius);
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  :root {
+    --sidebar-width-collapsed: 60px;
+    --sidebar-width-expanded: 200px;
+  }
+  
+  .d-flex-responsive {
+    flex-direction: column;
+  }
+}
+
+/* Print styles */
+@media print {
+  body {
+    background-color: white;
+  }
+  
+  .sidebar,
+  .header-actions,
+  .notification-btn,
+  .profile-btn {
+    display: none !important;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

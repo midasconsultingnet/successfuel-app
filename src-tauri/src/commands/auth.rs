@@ -1,0 +1,1 @@
+// Simplified authentication commands only - removing old complex auth system

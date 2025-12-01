@@ -1,0 +1,1 @@
+<!-- Simple auth guard - placeholder -->

@@ -1,0 +1,1 @@
+// Placeholder file - removing old auth system files

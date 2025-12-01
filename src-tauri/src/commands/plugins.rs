@@ -1,0 +1,1 @@
+// Simplified commands only - removing old plugins system

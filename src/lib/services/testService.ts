@@ -1,0 +1,1 @@
+// Simple test service - placeholder

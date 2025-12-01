@@ -1,0 +1,81 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "SuccessFuel ERP",
+  "version": "1.0.0",
+  "identifier": "com.successfuel.erp",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "SuccessFuel ERP",
+        "width": 1200,
+        "height": 800,
+        "resizable": true,
+        "fullscreen": false,
+        "minWidth": 800,
+        "minHeight": 600,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' https://successfuel-api.onrender.com https://api.successfuel.com https://update.successfuel.com; img-src 'self' https: data: blob:; font-src 'self' https: data:; style-src 'self' 'unsafe-inline'; media-src 'self' https:",
+      "assetProtocol": {
+        "enable": false
+      }
+    }
+  },
+  "plugins": {
+    "fs": {
+      "scope": [
+        "$APPDATA/**",
+        "$APPDATA"
+      ]
+    },
+    "http": {
+      "scope": [
+        "https://successfuel-api.onrender.com/**",
+        "https://api.successfuel.com/**",
+        "https://update.successfuel.com/**"
+      ]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "android": {
+      "minSdkVersion": 28
+    },
+    "publisher": "SuccessFuel",
+    "shortDescription": "Cloud-first ERP system with secure desktop client",
+    "longDescription": "SuccessFuel ERP is a cloud-first enterprise resource planning system with a secure Tauri-based desktop application for enhanced functionality and offline capabilities.",
+    "category": "Business",
+    "copyright": "Copyright (c) SuccessFuel. All rights reserved.",
+    "externalBin": [],
+    "resources": [],
+    "license": "LICENSE"
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://update.successfuel.com/v1/update/{{target}}/{{current_version}}"
+      ],
+      "windows": {
+        "installMode": "passive"
+      },
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEI1MjA2MjY1OTQ2QkQ5Q0MKUGtWc01JSWdOUlJBRG1hQjFtV25HeTFXY0NDcG9uWE1DTVVjeGxhVHNHRnI4PQo="
+    }
+  }
+}
