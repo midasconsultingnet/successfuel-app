@@ -28,6 +28,7 @@ export interface TranslationKeys {
     'markAsRead': string;
     'noNewNotifications': string;
     'userProfile': string;
+    'connectionStatus': string;
   },
 
   // Navigation
@@ -116,6 +117,7 @@ export const enTranslations: TranslationKeys = {
     markAsRead: 'Mark as read',
     noNewNotifications: 'No new notifications',
     userProfile: 'User Profile',
+    connectionStatus: 'Connection: {status}',
   },
 
   nav: {
@@ -200,6 +202,7 @@ export const frTranslations: TranslationKeys = {
     markAsRead: 'Marquer comme lu',
     noNewNotifications: 'Aucune nouvelle notification',
     userProfile: 'Profil utilisateur',
+    connectionStatus: 'Connexion: {status}',
   },
 
   nav: {

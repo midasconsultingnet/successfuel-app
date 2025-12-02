@@ -1,306 +1,179 @@
-import { connection, type ConnectionStatus } from '$lib/stores/connection';
-import { HealthAPI } from '$lib/services/api/health';
 import { get } from 'svelte/store';
+import { API } from '$lib/utils/constants';
+import { connectivityStore } from '$lib/stores/connectivity';
 
-export interface ConnectivityConfig {
-  checkInterval: number; // Interval for periodic checks in ms (default 10s)
-  retryBaseDelay: number; // Base delay for retries in ms (default 1s)
-  maxRetryDelay: number; // Maximum delay for retries in ms (default 30s)
-  requestTimeout: number; // Timeout for requests in ms (default 10s)
+export interface HealthCheckResponse {
+  status: string;
+  message?: string;
 }
 
-export interface ConnectivityResult<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
+export interface ConnectivityStatus {
+  isApiHealthy: boolean;
+  isDbHealthy: boolean;
+  lastChecked: Date | null;
+  isChecking: boolean;
 }
 
-export class EnhancedConnectivityManager {
-  private static instance: EnhancedConnectivityManager;
-  private config: ConnectivityConfig;
+export class ConnectivityService {
+  private static instance: ConnectivityService;
+  private baseUrl: string;
+  private checkInterval: number = 30000; // 30 seconds
+  private checkTimeout: number = 10000; // 10 seconds
   private intervalId: NodeJS.Timeout | null = null;
-  private isInitialized = false;
-  private statusChangeCallback: ((status: ConnectionStatus) => void) | null = null;
 
-  // Singleton pattern with optional configuration
-  static getInstance(config?: Partial<ConnectivityConfig>): EnhancedConnectivityManager {
-    if (typeof window === 'undefined') {
-      // On server, return a minimal instance that doesn't perform any checks
-      console.warn('Creating minimal connectivity manager instance on server');
-      return new EnhancedConnectivityManager(config, true);
-    }
-
-    if (!EnhancedConnectivityManager.instance) {
-      EnhancedConnectivityManager.instance = new EnhancedConnectivityManager(config);
-    }
-    return EnhancedConnectivityManager.instance;
+  private constructor() {
+    // Use the root URL from the app configuration
+    this.baseUrl = API.ROOT_URL;
   }
 
-  private constructor(config?: Partial<ConnectivityConfig>, isServer = false) {
-    if (isServer) {
-      // Minimal configuration for server - no actual checks
-      this.config = { checkInterval: 0, retryBaseDelay: 1000, maxRetryDelay: 30000, requestTimeout: 10000 };
-      return;
+  public static getInstance(): ConnectivityService {
+    if (!ConnectivityService.instance) {
+      ConnectivityService.instance = new ConnectivityService();
     }
-
-    this.config = {
-      checkInterval: 10000, // 10 seconds
-      retryBaseDelay: 1000, // 1 second
-      maxRetryDelay: 30000, // 30 seconds
-      requestTimeout: 10000, // 10 seconds
-      ...config
-    };
+    return ConnectivityService.instance;
   }
 
-  // Initialize the connectivity manager
-  initialize(): void {
-    if (typeof window === 'undefined') {
-      // Don't initialize on server
-      console.warn('Connectivity manager initialization skipped on server');
-      this.isInitialized = true;
-      return;
-    }
+  /**
+   * Perform a health check on the API
+   */
+  async checkHealth(): Promise<HealthCheckResponse> {
+    try {
+      // Using fetch directly to avoid circular dependencies with auth
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.checkTimeout);
 
-    if (!this.isInitialized) {
-      // Set up status change listener
-      connection.subscribe((status) => {
-        if (this.statusChangeCallback) {
-          this.statusChangeCallback(status);
+      const response = await fetch(`${this.baseUrl}/health`, {
+        method: 'GET',
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
         }
       });
 
-      this.startPeriodicChecks();
-      this.isInitialized = true;
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`Health check failed with status: ${response.status}`);
+      }
+
+      const data: HealthCheckResponse = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Health check error:', error);
+      throw new Error('API is not healthy');
     }
   }
 
-  // Start periodic connectivity checks (client-side only)
-  startPeriodicChecks(): () => void {
-    if (typeof window === 'undefined' || this.config.checkInterval <= 0) {
-      // Don't run periodic checks on the server or if disabled
-      console.warn('Periodic connectivity checks skipped on server or if disabled');
-      return () => {};
-    }
+  /**
+   * Perform a database connectivity check
+   */
+  async checkDbConnection(): Promise<HealthCheckResponse> {
+    try {
+      // Using fetch directly to avoid circular dependencies with auth
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.checkTimeout);
 
+      const response = await fetch(`${this.baseUrl}/db-check`, {
+        method: 'GET',
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`DB check failed with status: ${response.status}`);
+      }
+
+      const data: HealthCheckResponse = await response.json();
+      return data;
+    } catch (error) {
+      console.error('DB check error:', error);
+      throw new Error('Database connection is not healthy');
+    }
+  }
+
+  /**
+   * Perform both health checks and update store
+   */
+  async performCheck(): Promise<ConnectivityStatus> {
+    const currentState = get(connectivityStore);
+    
+    // Update checking flag
+    connectivityStore.update(state => ({
+      ...state,
+      isChecking: true
+    }));
+
+    try {
+      // Perform both checks concurrently
+      const [apiResult, dbResult] = await Promise.allSettled([
+        this.checkHealth(),
+        this.checkDbConnection()
+      ]);
+
+      const isApiHealthy = apiResult.status === 'fulfilled' && apiResult.value.status === 'healthy';
+      const isDbHealthy = dbResult.status === 'fulfilled' && dbResult.value.status === 'success';
+
+      const status: ConnectivityStatus = {
+        isApiHealthy,
+        isDbHealthy,
+        lastChecked: new Date(),
+        isChecking: false
+      };
+
+      // Update the store with the new status
+      connectivityStore.set(status);
+
+      return status;
+    } catch (error) {
+      console.error('Connectivity check error:', error);
+      
+      const status: ConnectivityStatus = {
+        isApiHealthy: false,
+        isDbHealthy: false,
+        lastChecked: new Date(),
+        isChecking: false
+      };
+      
+      connectivityStore.set(status);
+      return status;
+    }
+  }
+
+  /**
+   * Start periodic connectivity checks
+   */
+  startPeriodicChecks(): void {
     if (this.intervalId) {
-      clearInterval(this.intervalId);
+      this.stopPeriodicChecks();
     }
 
-    // Set up periodic checks (client-side only)
-    // Avoid initial check during setup to prevent SvelteKit warnings
+    // Perform initial check
+    this.performCheck();
+
+    // Set up interval for periodic checks
     this.intervalId = setInterval(() => {
-      connection.checkConnection();
-    }, this.config.checkInterval);
-
-    // Return cleanup function
-    return () => {
-      if (this.intervalId) {
-        clearInterval(this.intervalId);
-        this.intervalId = null;
-      }
-    };
+      this.performCheck();
+    }, this.checkInterval);
   }
 
-  // Get the current connection status
-  getCurrentStatus(): ConnectionStatus {
-    return get(connection);
-  }
-
-  // Get current status as a promise
-  getCurrentStatusPromise(): Promise<ConnectionStatus> {
-    return new Promise((resolve) => {
-      const unsubscribe = connection.subscribe((status) => {
-        unsubscribe();
-        resolve(status);
-      });
-    });
-  }
-
-  // Perform an immediate connection check with retry logic
-  async checkConnectionWithRetry(maxRetries: number = 3): Promise<ConnectionStatus> {
-    let attempt = 0;
-    let lastStatus: ConnectionStatus | null = null;
-
-    while (attempt <= maxRetries) {
-      await connection.checkConnection();
-
-      lastStatus = await this.getCurrentStatusPromise();
-
-      if (lastStatus.isConnected) {
-        return lastStatus;
-      }
-
-      if (attempt < maxRetries) {
-        // Calculate delay with exponential backoff
-        const delay = Math.min(
-          this.config.retryBaseDelay * Math.pow(2, attempt),
-          this.config.maxRetryDelay
-        );
-
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-
-      attempt++;
-    }
-
-    return lastStatus!;
-  }
-
-  // Check if the connection is stable
-  isConnectionStable(): boolean {
-    const status = this.getCurrentStatus();
-    return status.connectionStability === 'stable';
-  }
-
-  // Execute API call with connectivity handling
-  async executeWithConnectivity<T>(
-    apiCall: () => Promise<T>,
-    options: { maxRetries?: number } = {}
-  ): Promise<ConnectivityResult<T>> {
-    const { maxRetries = 3 } = options;
-
-    // First, check if we're connected
-    const status = this.getCurrentStatus();
-
-    if (!status.isConnected) {
-      // Attempt to reconnect immediately if not connected
-      await connection.immediateRetry();
-
-      // Wait a bit for the connection to be re-established
-      const newStatus = await this.waitForConnection(5000);
-      if (!newStatus) {
-        return {
-          success: false,
-          error: 'No internet connection available'
-        };
-      }
-    }
-
-    // Execute the API call with retry logic
-    let lastError: any;
-
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        const result = await apiCall();
-        return {
-          success: true,
-          data: result
-        };
-      } catch (error) {
-        lastError = error;
-
-        // Determine if this is a network error or application error
-        const isNetworkError = this.isNetworkError(error);
-
-        if (isNetworkError) {
-          // If it's a network error, we might want to retry
-          if (attempt === maxRetries - 1) {
-            // Last attempt, return the error
-            return {
-              success: false,
-              error: error instanceof Error ? error.message : 'Request failed'
-            };
-          }
-
-          // Wait before retrying with exponential backoff
-          const delay = Math.pow(2, attempt) * 1000;
-          await new Promise(resolve => setTimeout(resolve, delay));
-        } else {
-          // If it's an application error, don't retry
-          return {
-            success: false,
-            error: error instanceof Error ? error.message : 'Application error'
-          };
-        }
-      }
-    }
-
-    // This should not be reached, but just in case
-    return {
-      success: false,
-      error: lastError instanceof Error ? lastError.message : 'Request failed'
-    };
-  }
-
-  // Handle user-initiated action (immediate retry)
-  async handleUserAction(): Promise<boolean> {
-    // If we're not connected, attempt immediate reconnection
-    const status = this.getCurrentStatus();
-    if (!status.isConnected) {
-      await connection.forceRetry();
-
-      // Wait for connection to be established
-      return await this.waitForConnection(5000);
-    }
-
-    return true;
-  }
-
-  // Wait for connection to be established
-  waitForConnection(timeoutMs: number = 5000): Promise<boolean> {
-    const startTime = Date.now();
-
-    return new Promise((resolve) => {
-      let unsubscribe: () => void;
-
-      const subscription = connection.subscribe((status) => {
-        if (status.isConnected) {
-          if (unsubscribe) unsubscribe();
-          resolve(true);
-        } else if (Date.now() - startTime > timeoutMs) {
-          // Timeout reached
-          if (unsubscribe) unsubscribe();
-          resolve(false);
-        }
-        // Otherwise, continue waiting
-      });
-
-      // Store unsubscribe function after the subscription is created
-      unsubscribe = subscription;
-    });
-  }
-
-  // Determine if an error is a network error
-  private isNetworkError(error: any): boolean {
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      return true;
-    }
-
-    if (error instanceof Error) {
-      // Common network error indicators
-      const networkErrorPatterns = [
-        'Failed to fetch',
-        'NetworkError',
-        'Network Error',
-        'TypeError: Failed to fetch',
-        'Load failed'
-      ];
-
-      return networkErrorPatterns.some(pattern =>
-        error.message.includes(pattern)
-      );
-    }
-
-    return false;
-  }
-
-  // Register notification callback for connection status changes
-  onStatusChange(callback: (status: ConnectionStatus) => void): void {
-    this.statusChangeCallback = callback;
-  }
-
-  // Clear notification callback
-  clearStatusChangeCallback(): void {
-    this.statusChangeCallback = null;
-  }
-
-  // Destroy the connectivity manager
-  destroy(): void {
+  /**
+   * Stop periodic connectivity checks
+   */
+  stopPeriodicChecks(): void {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
     }
-    this.statusChangeCallback = null;
-    this.isInitialized = false;
+  }
+
+  /**
+   * Get current connectivity status from store
+   */
+  getCurrentStatus(): ConnectivityStatus {
+    return get(connectivityStore);
   }
 }

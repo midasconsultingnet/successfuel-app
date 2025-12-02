@@ -3,6 +3,7 @@
   import GasStationHeader from '$lib/components/features/gas-station/GasStationHeader.svelte';
   import GasStationSidebar from '$lib/components/features/gas-station/GasStationSidebar.svelte';
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
+  import ConnectionStatus from '$lib/components/ConnectionStatus.svelte';
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
   import { auth } from '$lib/stores/auth';
@@ -11,13 +12,20 @@
   import { getAuthService } from '$lib/services/auth'; // Updated import
   import { initI18nContext } from '$lib/hooks/useI18n';
   import { loadAllModuleTranslations } from '$lib/i18n/loadModuleTranslations';
+  import { ConnectivityService } from '$lib/services/connectivity';
 
   // Initialize i18n context
   initI18nContext();
 
-  // Load all module translations
+  // Load all module translations and start connectivity checks
   onMount(async () => {
     await loadAllModuleTranslations();
+
+    // Initialize connectivity service and start periodic checks
+    if (browser) {
+      const connectivityService = ConnectivityService.getInstance();
+      connectivityService.startPeriodicChecks();
+    }
   });
 
   let sidebarExpanded = $state(false);
@@ -170,6 +178,9 @@
 
     <main class="main-content" class:sidebar-expanded={sidebarExpanded}>
       <GasStationHeader />
+      <div class="connection-status-container">
+        <ConnectionStatus />
+      </div>
       <div class="page-content">
         <slot />
       </div>
@@ -235,6 +246,12 @@
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+  }
+
+  .connection-status-container {
+    padding: 0.5rem 1.5rem;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
   }
 
   .unauthorized {
